@@ -38,7 +38,6 @@ async def signup(user_in: UserIn):
 
 @router.post("/login")
 async def login(user_login: UserLogin):
-    # 🔍 Find user by email
     user = await User.get_by_email(str(user_login.email))
     if not user or not await user.verify_password(user_login.password):
         raise HTTPException(
