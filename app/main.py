@@ -10,19 +10,6 @@ import os
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    origins = [
-        "http://localhost:5173",
-        "http://localhost:3000"
-    ]
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins = origins,
-        allow_credentials = True,
-        allow_methods = ["*"],
-        allow_header = ["*"]
-    )
-
     print("🚀 Starting up...")
     await mongodb.connect()
     yield
@@ -31,9 +18,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.include_router(auth.router)
+origins = [
+        "http://localhost:5173",
+        "http://localhost:3000"
+    ]
 
-# import secrets
-#
-# secret_key = secrets.token_urlsafe(32)
-# print(secret_key)
+app.add_middleware(
+        CORSMiddleware,
+        allow_origins = origins,
+        allow_credentials = True,
+        allow_methods = ["*"],
+        allow_headers = ["*"]
+    )
+
+app.include_router(auth.router)
