@@ -14,3 +14,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(auth.router)
+
+# import secrets
+#
+# secret_key = secrets.token_urlsafe(32)
+# print(secret_key)
