@@ -20,6 +20,7 @@ class UserOut(BaseModel):
     username: str
     email: EmailStr
     id: str
+    credits: int
     created_at: Optional[str]
 
     class Config:

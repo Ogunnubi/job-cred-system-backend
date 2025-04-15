@@ -5,12 +5,13 @@ from app.db.mongo import get_db
 
 class User:
     def __init__(self, username: str, email: str, password: str, id: Optional[str] = None,
-                 created_at: Optional[str] = None):
+                 created_at: Optional[str] = None, credits: int =820):
         self.username = username
         self.email = email
         self.password = password
         self.id = id or str(ObjectId())
         self.created_at = created_at
+        self.credits = credits
 
     def to_dict(self):
         return {
@@ -18,7 +19,8 @@ class User:
             "username": self.username,
             "email": self.email,
             "password": self.password,
-            "created_at": self.created_at
+            "created_at": self.created_at,
+            "credits": self.credits
         }
 
     async def save(self):
