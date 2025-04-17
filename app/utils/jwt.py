@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone  # Import timezone
 from jose import JWTError, jwt
 from app.core.config import SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRATION_MINUTES, JWT_REFRESH_EXPIRATION_DAYS
 
@@ -10,9 +10,8 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 def create_refresh_token(data: dict) -> str:
-    expires_delta = timedelta(days=JWT_REFRESH_EXPIRATION_DAYS)
     to_encode = data.copy()
-    expire = datetime.now() + expires_delta
+    expire = datetime.now(timezone.utc) + timedelta(days=JWT_REFRESH_EXPIRATION_DAYS)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=JWT_ALGORITHM)
 

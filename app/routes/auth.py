@@ -30,7 +30,7 @@ async def signup(user_in: UserIn):
         email=str(user_in.email),
         password=hashed_password,
         credits=820,
-        created_at=datetime.utcnow().isoformat()
+        created_at=datetime.now().isoformat()
     )
     await new_user.save()
 
@@ -49,7 +49,15 @@ async def login(user_login: UserLogin, response: Response):
     if not user or not await user.verify_password(user_login.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    access_token = create_access_token({"id": user.id, "email": user.email})
+    token_data = {
+        "username": user.username,
+        "email": user.email,
+        "id": user.id,
+        "credits": user.credits,
+        "created_at": user.created_at
+    }
+
+    access_token = create_access_token(token_data)
     refresh_token = create_refresh_token({"id": user.id})
 
     await user.add_refresh_token(refresh_token)
@@ -59,7 +67,7 @@ async def login(user_login: UserLogin, response: Response):
         httponly=True,
         secure=False,
         samesite="lax",
-        max_age=JWT_REFRESH_EXPIRATION_DAYS * 24 * 60 * 60,
+        max_age=JWT_REFRESH_EXPIRATION_DAYS * 60 * 60 * 24,
     )
 
     return {
@@ -84,7 +92,15 @@ async def refresh_token(refresh_token: str = Cookie(None)):
         if not user or not await user.is_valid_refresh_token(refresh_token):
             raise HTTPException(status_code=401, detail="Invalid or revoked token")
 
-        new_access_token = create_access_token({"id": user.id, "email": user.email})
+        token_data = {
+            "username": user.username,
+            "email": user.email,
+            "id": user.id,
+            "credits": user.credits,
+            "created_at": user.created_at
+        }
+
+        new_access_token = create_access_token(token_data)
         return {"access_token": new_access_token, "token_type": "bearer"}
 
     except JWTError:

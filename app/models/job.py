@@ -5,11 +5,12 @@ from datetime import datetime
 from app.db.mongo import get_db
 
 class Job:
-    def __init__(self, title: str, job_description: str, credits_required: int,
+    def __init__(self, title: str, job_description: str, credits_required: int, posted_by: str,
                  id: Optional[str] = None, created_at: Optional[str] = None):
         self.title = title
         self.job_description = job_description
         self.credits_required = credits_required
+        self.posted_by = posted_by
         self.id = id or str(ObjectId())
         self.created_at = created_at or datetime.utcnow().isoformat()
 
@@ -19,6 +20,7 @@ class Job:
             "title": self.title,
             "job_description": self.job_description,
             "credits_required": self.credits_required,
+            "posted_by": self.posted_by,
             "created_at": self.created_at
         }
 
@@ -37,6 +39,7 @@ class Job:
                 title=job_data["title"],
                 job_description=job_data["job_description"],
                 credits_required=job_data["credits_required"],
+                posted_by=job_data["posted_by"],
                 id=str(job_data["_id"]),
                 created_at=job_data.get("created_at")
             ))
@@ -51,6 +54,7 @@ class Job:
                 title=job_data["title"],
                 job_description=job_data["job_description"],
                 credits_required=job_data["credits_required"],
+                posted_by=job_data["posted_by"],
                 id=str(job_data["_id"]),
                 created_at=job_data.get("created_at")
             )

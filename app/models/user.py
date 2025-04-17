@@ -5,7 +5,7 @@ from app.db.mongo import get_db
 
 class User:
     def __init__(self, username: str, email: str, password: str, id: Optional[str] = None,
-                 created_at: Optional[str] = None, credits: int =820):
+                 created_at: Optional[str] = None, credits: int = 820):
         self.username = username
         self.email = email
         self.password = password
@@ -79,4 +79,14 @@ class User:
         await db.users.update_one(
             {"_id": ObjectId(self.id)},
             {"$pull": {"refresh_tokens": token}}
+        )
+
+    async def deduct_credits(self, amount: int):
+        if self.credits < amount:
+            raise ValueError("Not enough credits")
+        self.credits -= amount
+        db = get_db()
+        await db.users.update_one(
+            {"_id": ObjectId(self.id)},
+            {"$inc": {"credits": -amount}}
         )

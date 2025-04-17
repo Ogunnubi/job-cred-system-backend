@@ -13,7 +13,8 @@ class JobOut(BaseModel):
     title: str
     job_description: str
     credits_required: int
+    posted_by: str
     created_at: Optional[str]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
