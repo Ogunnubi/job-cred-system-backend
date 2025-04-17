@@ -20,7 +20,7 @@ async def signup(user_in: UserIn):
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User already exists."
+            detail="Email already exists."
         )
 
     hashed_password = hash_password(user_in.password)

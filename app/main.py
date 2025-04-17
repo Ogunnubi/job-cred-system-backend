@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from starlette.middleware.cors import CORSMiddleware
 
 from app.db.mongo import mongodb
-from app.routes import auth
+from app.routes import auth, job
 import os
 
 @asynccontextmanager
@@ -32,3 +32,4 @@ app.add_middleware(
     )
 
 app.include_router(auth.router)
+app.include_router(job.router, prefix="/jobs", tags=["jobs"])
