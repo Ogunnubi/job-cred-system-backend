@@ -7,29 +7,30 @@ from app.db.mongo import mongodb
 from app.routes import auth
 import os
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-
-    origins = [
-        "http://localhost:5173",
-        "http://localhost:3000"
-    ]
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins = origins,
-        allow_credentials = True,
-        allow_methods = ["*"],
-        allow_header = ["*"]
-    )
-
     print("🚀 Starting up...")
     await mongodb.connect()
     yield
     print("👋 Shutting down...")
     await mongodb.close()
 
+
 app = FastAPI(lifespan=lifespan)
+
+origins = [
+    "http://localhost:5173",
+    "http://localhost:3000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_header=["*"]
+)
 
 app.include_router(auth.router)
 
