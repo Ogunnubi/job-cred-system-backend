@@ -2,6 +2,10 @@
 from bson import ObjectId
 from typing import Optional
 from datetime import datetime
+
+from fastapi import HTTPException
+from starlette import status
+
 from app.db.mongo import get_db
 
 class Job:
@@ -21,14 +25,24 @@ class Job:
             "job_description": self.job_description,
             "credits_required": self.credits_required,
             "posted_by": self.posted_by,
-            "created_at": self.created_at
+            "created_at": self.created_at or datetime.utcnow().isoformat()
         }
 
     async def save(self):
         db = get_db()
-        result = await db.jobs.insert_one(self.to_dict())
-        self.id = str(result.inserted_id)
-        return self
+        try:
+            job_dict = self.to_dict()
+            print("Attempting to save job:", job_dict)  # Debug log
+            result = await db.jobs.insert_one(job_dict)
+            self.id = str(result.inserted_id)
+            print("Job saved successfully, ID:", self.id)  # Debug log
+            return self
+        except Exception as e:
+            print("Error saving job:", str(e))  # Debug log
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to save job to database"
+            )
 
     @staticmethod
     async def get_all():

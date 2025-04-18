@@ -37,6 +37,27 @@ async def create_job(
     )
 
 
+@router.get("/{job_id}", response_model=JobOut)
+async def get_job_by_id(
+        job_id: str,
+        current_user: UserOut = Depends(get_current_user)
+):
+    job = await Job.get_by_id(job_id)
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found"
+        )
+
+    return JobOut(
+        id=job.id,
+        title=job.title,
+        job_description=job.job_description,
+        credits_required=job.credits_required,
+        posted_by=job.posted_by,
+        created_at=job.created_at
+    )
+
 @router.get("/", response_model=List[JobOut])
 async def get_all_jobs(current_user: UserOut = Depends(get_current_user)):
     jobs = await Job.get_all()
