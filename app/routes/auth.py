@@ -72,7 +72,7 @@ async def login(user_login: UserLogin, response: Response):
 
     return {
         "access_token": access_token,
-        "token_type": "bearer",
+        "token_type": "Bearer",
         "user": {
             "id": user.id,
             "email": user.email,
