@@ -3,8 +3,10 @@ from contextlib import asynccontextmanager
 
 from starlette.middleware.cors import CORSMiddleware
 
+from fastapi.openapi.utils import get_openapi
+
 from app.db.mongo import mongodb
-from app.routes import auth
+from app.routes import auth, job
 import os
 
 @asynccontextmanager
@@ -19,7 +21,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 origins = [
-        "http://localhost:5173",
+        "http://localhost:5174",
         "http://localhost:3000"
     ]
 
@@ -31,4 +33,61 @@ app.add_middleware(
         allow_headers = ["*"]
     )
 
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    # Get base OpenAPI schema
+    openapi_schema = get_openapi(
+        title="Your API",
+        version="1.0.0",
+        description="API for job platform",
+        routes=app.routes,
+    )
+
+    # Ensure components exist
+    if "components" not in openapi_schema:
+        openapi_schema["components"] = {}
+
+    # Add security scheme
+    openapi_schema["components"]["securitySchemes"] = {
+        "Bearer": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT"
+        }
+    }
+
+    # Ensure schemas exist
+    if "schemas" not in openapi_schema["components"]:
+        openapi_schema["components"]["schemas"] = {}
+
+    exclude_paths = {
+        "/signup": ["post"],
+        "/login": ["post"]
+    }
+
+    for path, methods in openapi_schema["paths"].items():
+        for method, config in methods.items():
+            if path in exclude_paths and method.lower() in exclude_paths[path]:
+                continue
+            if config.get("security") is None:
+                config["security"] = [{"Bearer": []}]
+
+    for path_item in openapi_schema["paths"].values():
+        for operation in path_item.values():
+            if "requestBody" in operation:
+                content = operation["requestBody"].get("content", {})
+                for media_type in content.values():
+                    if "$ref" in media_type.get("schema", {}):
+                        ref = media_type["schema"]["$ref"]
+                        if not ref.startswith("#/components/schemas/"):
+                            media_type["schema"]["$ref"] = f"#/components/schemas/{ref}"
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 app.include_router(auth.router)
+app.include_router(job.router, prefix="/jobs", tags=["jobs"])
