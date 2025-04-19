@@ -6,8 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
 from app.db.mongo import mongodb
-from app.routes import auth, job
-import os
+from app.routes import auth, job, profile
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -91,3 +90,4 @@ def custom_openapi():
 app.openapi = custom_openapi
 app.include_router(auth.router)
 app.include_router(job.router, prefix="/jobs", tags=["jobs"])
+app.include_router(profile.router, prefix="/profile", tags=["profile"])

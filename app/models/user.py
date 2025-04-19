@@ -5,13 +5,17 @@ from app.db.mongo import get_db
 
 class User:
     def __init__(self, username: str, email: str, password: str, id: Optional[str] = None,
-                 created_at: Optional[str] = None, credits: int = 820):
+                 created_at: Optional[str] = None, credits: int = 820, first_name: Optional[str] = None,
+             last_name: Optional[str] = None, phone: Optional[str] = None):
         self.username = username
         self.email = email
         self.password = password
         self.id = id or str(ObjectId())
         self.created_at = created_at
         self.credits = credits
+        self.first_name = first_name
+        self.last_name = last_name
+        self.phone = phone
 
     def to_dict(self):
         return {
@@ -20,8 +24,25 @@ class User:
             "email": self.email,
             "password": self.password,
             "created_at": self.created_at,
-            "credits": self.credits
+            "credits": self.credits,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "phone": self.phone
         }
+
+    async def update_profile(self, first_name: str, last_name: str, phone: str):
+        self.first_name = first_name
+        self.last_name = last_name
+        self.phone = phone
+        db = get_db()
+        await db.users.update_one(
+            {"_id": ObjectId(self.id)},
+            {"$set": {
+                "first_name": first_name,
+                "last_name": last_name,
+                "phone": phone
+            }}
+        )
 
     async def save(self):
         db = get_db()
@@ -67,6 +88,32 @@ class User:
             {"$push": {"refresh_tokens": token}}
         )
 
+    async def set_password(self, new_password: str):
+        from app.core.security import hash_password
+        self.password = hash_password(new_password)
+        db = get_db()
+        await db.users.update_one(
+            {"_id": ObjectId(self.id)},
+            {"$set": {"password": self.password}}
+        )
+
+    @staticmethod
+    async def create_reset_token(email: str) -> str:
+        from app.utils.jwt import create_reset_token
+        user = await User.get_by_email(email)
+        if not user:
+            raise ValueError("User not found")
+        return create_reset_token({"id": user.id})
+
+    @staticmethod
+    async def reset_password(token: str, new_password: str):
+        from app.utils.jwt import verify_reset_token
+        payload = verify_reset_token(token)
+        user = await User.get_by_id(payload["id"])
+        if not user:
+            raise ValueError("Invalid token")
+        await user.set_password(new_password)
+
     async def is_valid_refresh_token(self, token: str) -> bool:
         db = get_db()
         user_data = await db.users.find_one(
@@ -90,3 +137,18 @@ class User:
             {"_id": ObjectId(self.id)},
             {"$inc": {"credits": -amount}}
         )
+
+    async def update_profile(self, first_name: str, last_name: str, phone: str):
+        self.first_name = first_name
+        self.last_name = last_name
+        self.phone = phone
+        db = get_db()
+        await db.users.update_one(
+            {"_id": ObjectId(self.id)},
+            {"$set": {
+                "first_name": first_name,
+                "last_name": last_name,
+                "phone": phone
+            }}
+        )
+
