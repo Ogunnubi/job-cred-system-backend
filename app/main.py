@@ -64,7 +64,8 @@ def custom_openapi():
 
     exclude_paths = {
         "/signup": ["post"],
-        "/login": ["post"]
+        "/login": ["post"],
+        "/jobs/": ["post"]
     }
 
     for path, methods in openapi_schema["paths"].items():

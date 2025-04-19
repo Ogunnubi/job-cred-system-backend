@@ -8,7 +8,7 @@ from app.models.user import User
 from app.schemas.job import JobIn, JobOut, JobApplicationIn, JobApplicationOut
 from app.core.auth import get_current_user
 from app.schemas.user import UserOut
-from typing import List
+from typing import List, Optional
 import asyncio
 
 router = APIRouter()
@@ -16,21 +16,12 @@ router = APIRouter()
 job_queue = asyncio.Queue()
 
 @router.post("/", response_model=JobOut)
-async def create_job(
-        job_in: JobIn,
-        current_user: UserOut = Depends(get_current_user)
-):
-    if current_user.credits < job_in.credits_required:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough credits to post this job"
-        )
-
+async def create_job(job_in: JobIn):
     job = Job(
         title=job_in.title,
         job_description=job_in.job_description,
         credits_required=job_in.credits_required,
-        posted_by=current_user.id  # Track who posted the job
+        posted_by=None
     )
     await job.save()
 
@@ -39,7 +30,7 @@ async def create_job(
         title=job.title,
         job_description=job.job_description,
         credits_required=job.credits_required,
-        posted_by=job.posted_by,
+        posted_by=None,
         created_at=job.created_at
     )
 
