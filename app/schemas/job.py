@@ -13,7 +13,7 @@ class JobOut(BaseModel):
     title: str
     job_description: str
     credits_required: int
-    posted_by: str
+    posted_by: Optional[str] = None
     created_at: Optional[str]
 
     class Config:

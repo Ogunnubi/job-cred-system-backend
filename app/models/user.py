@@ -128,27 +128,16 @@ class User:
             {"$pull": {"refresh_tokens": token}}
         )
 
+
     async def deduct_credits(self, amount: int):
-        if self.credits < amount:
-            raise ValueError("Not enough credits")
-        self.credits -= amount
         db = get_db()
-        await db.users.update_one(
-            {"_id": ObjectId(self.id)},
+        result = await db.users.update_one(
+            {"_id": ObjectId(self.id), "credits": {"$gte": amount}},
             {"$inc": {"credits": -amount}}
         )
+        if result.modified_count == 0:
+            raise ValueError("Not enough credits or user not found")
 
-    async def update_profile(self, first_name: str, last_name: str, phone: str):
-        self.first_name = first_name
-        self.last_name = last_name
-        self.phone = phone
-        db = get_db()
-        await db.users.update_one(
-            {"_id": ObjectId(self.id)},
-            {"$set": {
-                "first_name": first_name,
-                "last_name": last_name,
-                "phone": phone
-            }}
-        )
+        self.credits -= amount
+
 

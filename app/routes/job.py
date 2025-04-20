@@ -8,7 +8,9 @@ from app.models.user import User
 from app.schemas.job import JobIn, JobOut, JobApplicationIn, JobApplicationOut
 from app.core.auth import get_current_user
 from app.schemas.user import UserOut
-from typing import List, Optional
+from typing import List
+from arq.connections import create_pool, RedisSettings
+from app.core.config import REDIS_URL
 import asyncio
 
 router = APIRouter()
@@ -86,56 +88,46 @@ async def process_application_after_delay(application_id: str):
 
     except Exception as e:
         print(f"Error processing application {application_id}: {str(e)}")
-        # Consider adding retry logic here
 
 
 @router.post("/{job_id}/apply")
 async def apply_for_job(
         job_id: str,
         application: JobApplicationIn,
-        background_tasks: BackgroundTasks,
         current_user: UserOut = Depends(get_current_user)
 ):
     db = get_db()
 
-    job = await Job.get_by_id(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+    async with await db.client.start_session() as session:
+        async with session.start_transaction():
+            job = await Job.get_by_id(job_id)
+            if not job:
+                raise HTTPException(status_code=404, detail="Job not found")
 
-    user = await User.get_by_id(current_user.id)
+            user = await User.get_by_id(current_user.id)
+            try:
+                await user.deduct_credits(job.credits_required)
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                    detail=str(e)
+                )
 
-    if user.credits < job.credits_required:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail=f"Not enough credits. Required: {job.credits_required}, Available: {user.credits}"
-        )
+            new_application = JobApplication(
+                job_id=job_id,
+                user_id=current_user.id,
+                proposal=application.proposal,
+                status="pending"
+            )
+            await new_application.save()
 
-    new_application = JobApplication(
-        job_id=job_id,
-        user_id=current_user.id,
-        proposal=application.proposal,
-        status="pending"
-    )
-    await new_application.save()
+    redis = await create_pool(RedisSettings.from_dsn(REDIS_URL))
+    await redis.enqueue_job("process_application", new_application.id)
 
-    try:
-        await user.deduct_credits(job.credits_required)
-
-        background_tasks.add_task(process_application_after_delay, new_application.id)
-
-        return {
-            "message": "Application submitted successfully. You'll receive a response in 5 minutes.",
-            "application_id": new_application.id,
-            "remaining_credits": user.credits - job.credits_required
-        }
-
-    except Exception as e:
-
-        await db.applications.delete_one({"_id": ObjectId(new_application.id)})
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to process application"
-        )
+    return {
+        "message": "Application submitted successfully",
+        "application_id": new_application.id,
+    }
 
 
 @router.get("/applications/{application_id}", response_model=JobApplicationOut)
