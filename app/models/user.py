@@ -1,6 +1,8 @@
 from bson import ObjectId
 from typing import Optional
 from app.db.mongo import get_db
+from app.models.credit import CreditTransaction
+from app.schemas.credit import TransactionType
 
 
 class User:
@@ -131,6 +133,12 @@ class User:
 
     async def deduct_credits(self, amount: int):
         db = get_db()
+
+        user = await  db.users.find_one({"_id": ObjectId(self.id)})
+        if not user:
+            raise ValueError("User not Found")
+        if user.get("credits", 0) < amount:
+            raise ValueError("Not Enough Credits")
         result = await db.users.update_one(
             {"_id": ObjectId(self.id), "credits": {"$gte": amount}},
             {"$inc": {"credits": -amount}}
@@ -139,5 +147,26 @@ class User:
             raise ValueError("Not enough credits or user not found")
 
         self.credits -= amount
+
+    async def add_credits(
+            self,
+            amount: int,
+            transaction_type: TransactionType.TOPUP,
+            description: str
+    ):
+        db = get_db()
+
+        tx = CreditTransaction(
+            user_id=self.id,
+            amount=amount,
+            transaction_type=TransactionType.TOPUP,
+            description=description
+        )
+        await tx.save()
+
+        await db.users.update_one(
+            {"_id": ObjectId(self.id)},
+            {"$inc": {"credits": amount}}
+        )
 
 

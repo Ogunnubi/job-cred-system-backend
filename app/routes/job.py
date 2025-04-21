@@ -3,8 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 
 from app.db.mongo import get_db
 from app.models.application import JobApplication
+from app.models.credit import CreditTransaction
 from app.models.job import Job
 from app.models.user import User
+from app.schemas.credit import TransactionType
 from app.schemas.job import JobIn, JobOut, JobApplicationIn, JobApplicationOut
 from app.core.auth import get_current_user
 from app.schemas.user import UserOut
@@ -104,6 +106,16 @@ async def apply_for_job(
             if not job:
                 raise HTTPException(status_code=404, detail="Job not found")
 
+            existing_application = await db.applications.find_one({
+                "job_id": job_id,
+                "user_id": current_user.id
+            })
+            if existing_application:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Application Already Sent"
+                )
+
             user = await User.get_by_id(current_user.id)
             try:
                 await user.deduct_credits(job.credits_required)
@@ -121,13 +133,77 @@ async def apply_for_job(
             )
             await new_application.save()
 
+            tx = CreditTransaction(
+                user_id=current_user.id,
+                amount=-job.credits_required,
+                transaction_type=TransactionType.JOB_APPLICATION,
+                description=f"Applied for job: {job.title} (ID: {job_id})",
+                job_id=job_id
+            )
+            await tx.save()
+
     redis = await create_pool(RedisSettings.from_dsn(REDIS_URL))
     await redis.enqueue_job("process_application", new_application.id)
-
     return {
         "message": "Application submitted successfully",
         "application_id": new_application.id,
     }
+
+
+@router.put("/applications/{application_id}", response_model=JobApplicationOut)
+async def update_application(
+        application_id: str,
+        updated_application: JobApplicationIn,
+        current_user: UserOut = Depends(get_current_user)
+):
+    db = get_db()
+
+    application = await db.applications.find_one({
+        "_id": ObjectId(application_id),
+        "user_id": current_user.id
+    })
+
+    if not application:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Application not found or not owned by user"
+        )
+
+    await db.applications.update_one(
+        {"_id": ObjectId(application_id)},
+        {"$set": {"proposal": updated_application.proposal}}
+    )
+
+    updated = await db.applications.find_one({"_id": ObjectId(application_id)})
+    return JobApplicationOut(
+        id=str(updated["_id"]),
+        job_id=updated["job_id"],
+        user_id=updated["user_id"],
+        proposal=updated["proposal"],
+        status=updated["status"],
+        created_at=updated["created_at"]
+    )
+
+
+@router.delete("/applications/{application_id}")
+async def delete_application(
+        application_id: str,
+        current_user: UserOut = Depends(get_current_user)
+):
+    db = get_db()
+
+    result = await db.applications.delete_one({
+        "_id": ObjectId(application_id),
+        "user_id": current_user.id
+    })
+
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Application not found or not owned by user"
+        )
+
+    return {"message": "Application deleted successfully"}
 
 
 @router.get("/applications/user", response_model=List[JobApplicationOut])
@@ -136,7 +212,6 @@ async def get_user_applications(
 ):
     db = get_db()
 
-    # Find all applications for the current user
     applications = []
     async for app_data in db.applications.find({"user_id": current_user.id}):
         applications.append(JobApplicationOut(

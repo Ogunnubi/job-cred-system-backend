@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-async def process_application(application_id: str):
+async def process_application(ctx, application_id: str):
     try:
         logger.info(f"Starting to process application {application_id}")
 
@@ -41,7 +41,7 @@ async def process_application(application_id: str):
         pass
 
 
-async def startup():
+async def startup(ctx):
     try:
         if mongodb.db is None:
             await mongodb.connect()
@@ -51,7 +51,7 @@ async def startup():
         raise
 
 
-async def shutdown():
+async def shutdown(ctx):
     try:
         if mongodb.db is not None:
             await mongodb.close()
