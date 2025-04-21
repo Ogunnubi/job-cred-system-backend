@@ -20,7 +20,6 @@ class JobOut(BaseModel):
         from_attributes = True
 
 class JobApplicationIn(BaseModel):
-    job_id: str
     proposal: str
 
 class JobApplicationOut(BaseModel):

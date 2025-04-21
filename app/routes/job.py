@@ -130,20 +130,22 @@ async def apply_for_job(
     }
 
 
-@router.get("/applications/{application_id}", response_model=JobApplicationOut)
-async def get_application(
-        application_id: str,
+@router.get("/applications/user", response_model=List[JobApplicationOut])
+async def get_user_applications(
         current_user: UserOut = Depends(get_current_user)
 ):
-    application = await JobApplication.get_by_id(application_id)
-    if not application or application.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="Application not found")
+    db = get_db()
 
-    return JobApplicationOut(
-        id=application.id,
-        job_id=application.job_id,
-        user_id=application.user_id,
-        proposal=application.proposal,
-        status=application.status,
-        created_at=application.created_at
-    )
+    # Find all applications for the current user
+    applications = []
+    async for app_data in db.applications.find({"user_id": current_user.id}):
+        applications.append(JobApplicationOut(
+            id=str(app_data["_id"]),
+            job_id=app_data["job_id"],
+            user_id=app_data["user_id"],
+            proposal=app_data["proposal"],
+            status=app_data["status"],
+            created_at=app_data.get("created_at")
+        ))
+
+    return applications

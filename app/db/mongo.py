@@ -14,17 +14,25 @@ class MongoDB:
         self.db = None
 
     async def connect(self):
-        self.client = AsyncIOMotorClient(MONGO_URI)
-        self.db = self.client[DB_NAME]
-        print("✅ Connected to MongoDB")
+        if not self.client:
+            self.client = AsyncIOMotorClient(MONGO_URI)
+            self.db = self.client[DB_NAME]
+            print("✅ Connected to MongoDB")
+        return self.db
 
     async def close(self):
         if self.client:
             await self.client.close()
+            self.client = None
+            self.db = None
             print("❌ Disconnected from MongoDB")
 
+    def get_db(self):
+        if not self.db:
+            raise RuntimeError("Database not connected")
+        return self.db
 
-# Create a single instance
+
 mongodb = MongoDB()
 
 
