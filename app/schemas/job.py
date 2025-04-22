@@ -18,3 +18,15 @@ class JobOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class JobApplicationIn(BaseModel):
+    job_id: str
+    proposal: str
+
+class JobApplicationOut(BaseModel):
+    id: str
+    job_id: str
+    user_id: str
+    proposal: str
+    status: str
+    created_at: str
