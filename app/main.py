@@ -6,7 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
 from app.db.mongo import mongodb
-from app.routes import auth, job, profile
+from app.routes import auth, job, profile, credit
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,7 +37,6 @@ def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
 
-    # Get base OpenAPI schema
     openapi_schema = get_openapi(
         title="Your API",
         version="1.0.0",
@@ -45,11 +44,9 @@ def custom_openapi():
         routes=app.routes,
     )
 
-    # Ensure components exist
     if "components" not in openapi_schema:
         openapi_schema["components"] = {}
 
-    # Add security scheme
     openapi_schema["components"]["securitySchemes"] = {
         "Bearer": {
             "type": "http",
@@ -58,7 +55,6 @@ def custom_openapi():
         }
     }
 
-    # Ensure schemas exist
     if "schemas" not in openapi_schema["components"]:
         openapi_schema["components"]["schemas"] = {}
 
@@ -92,3 +88,4 @@ app.openapi = custom_openapi
 app.include_router(auth.router)
 app.include_router(job.router, prefix="/jobs", tags=["jobs"])
 app.include_router(profile.router, prefix="/profile", tags=["profile"])
+app.include_router(credit.router, prefix="/credits", tags=["credits"])

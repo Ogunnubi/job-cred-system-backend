@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 from typing import Optional
 from app.db.mongo import get_db
@@ -13,7 +13,7 @@ class JobApplication:
         self.proposal = proposal
         self.status = status
         self.id = id or str(ObjectId())
-        self.created_at = created_at or datetime.utcnow().isoformat()
+        self.created_at = created_at or datetime.now(timezone.utc).isoformat()
 
     async def save(self):
         db = get_db()

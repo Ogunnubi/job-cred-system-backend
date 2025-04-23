@@ -1,7 +1,7 @@
 # models/job.py
 from bson import ObjectId
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from starlette import status
@@ -16,7 +16,7 @@ class Job:
         self.credits_required = credits_required
         self.posted_by = posted_by
         self.id = id or str(ObjectId())
-        self.created_at = created_at or datetime.utcnow().isoformat()
+        self.created_at = created_at or datetime.now(timezone.utc).isoformat()
 
     def to_dict(self):
         return {
@@ -25,7 +25,7 @@ class Job:
             "job_description": self.job_description,
             "credits_required": self.credits_required,
             "posted_by": self.posted_by,
-            "created_at": self.created_at or datetime.utcnow().isoformat()
+            "created_at": self.created_at or datetime.now(timezone.utc).isoformat()
         }
 
     async def save(self):

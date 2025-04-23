@@ -1,6 +1,8 @@
 from bson import ObjectId
 from typing import Optional
 from app.db.mongo import get_db
+from app.models.credit import CreditTransaction
+from app.schemas.credit import TransactionType
 
 
 class User:
@@ -128,27 +130,43 @@ class User:
             {"$pull": {"refresh_tokens": token}}
         )
 
+
     async def deduct_credits(self, amount: int):
-        if self.credits < amount:
-            raise ValueError("Not enough credits")
-        self.credits -= amount
         db = get_db()
-        await db.users.update_one(
-            {"_id": ObjectId(self.id)},
+
+        user = await  db.users.find_one({"_id": ObjectId(self.id)})
+        if not user:
+            raise ValueError("User not Found")
+        if user.get("credits", 0) < amount:
+            raise ValueError("Not Enough Credits")
+        result = await db.users.update_one(
+            {"_id": ObjectId(self.id), "credits": {"$gte": amount}},
             {"$inc": {"credits": -amount}}
         )
+        if result.modified_count == 0:
+            raise ValueError("Not enough credits or user not found")
 
-    async def update_profile(self, first_name: str, last_name: str, phone: str):
-        self.first_name = first_name
-        self.last_name = last_name
-        self.phone = phone
+        self.credits -= amount
+
+    async def add_credits(
+            self,
+            amount: int,
+            transaction_type: TransactionType.TOPUP,
+            description: str
+    ):
         db = get_db()
+
+        tx = CreditTransaction(
+            user_id=self.id,
+            amount=amount,
+            transaction_type=TransactionType.TOPUP,
+            description=description
+        )
+        await tx.save()
+
         await db.users.update_one(
             {"_id": ObjectId(self.id)},
-            {"$set": {
-                "first_name": first_name,
-                "last_name": last_name,
-                "phone": phone
-            }}
+            {"$inc": {"credits": amount}}
         )
+
 
