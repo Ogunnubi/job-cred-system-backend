@@ -11,7 +11,7 @@ model = genai.GenerativeModel("gemini-1.5-flash")
 
 conversation_history: Dict[str, List[Dict[str, str]]] = {}
 
-BOT_INTRODUCTION = ("Hi! I am a translation bot that can help you translate text from English to Russian. "
+BOT_INTRODUCTION = ("Hi! I am a translation bot that can help you translate text across languages. "
                     "Simply send me the text you'd like to translate, and I'll help you right away.")
 
 async def get_ai_response(prompt: str, user_id: str) -> str:
