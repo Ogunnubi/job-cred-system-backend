@@ -1,3 +1,5 @@
+from sys import prefix
+
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
@@ -6,7 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
 from app.db.mongo import mongodb
-from app.routes import auth, job, profile, credit
+from app.routes import auth, job, profile, credit, chatGPT
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,7 +22,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 origins = [
-        "http://localhost:5174",
+        "http://localhost:5173",
         "http://localhost:3000"
     ]
 
@@ -89,3 +91,4 @@ app.include_router(auth.router)
 app.include_router(job.router, prefix="/jobs", tags=["jobs"])
 app.include_router(profile.router, prefix="/profile", tags=["profile"])
 app.include_router(credit.router, prefix="/credits", tags=["credits"])
+app.include_router(chatGPT.router, prefix="/ai", tags=["AI Assistant"])

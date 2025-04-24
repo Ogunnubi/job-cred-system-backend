@@ -118,7 +118,7 @@ async def apply_for_job(
 
             user = await User.get_by_id(current_user.id)
             try:
-                await user.deduct_credits(job.credits_required)
+                updated_credits = await user.deduct_credits(job.credits_required)
             except ValueError as e:
                 raise HTTPException(
                     status_code=status.HTTP_402_PAYMENT_REQUIRED,
@@ -147,6 +147,7 @@ async def apply_for_job(
     return {
         "message": "Application submitted successfully",
         "application_id": new_application.id,
+        "credits_balance": updated_credits
     }
 
 

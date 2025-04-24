@@ -36,7 +36,7 @@ async def topup_credits(
     package = CreditService.get_package_details(request.package)
 
     user = await User.get_by_id(current_user.id)
-    await user.add_credits(
+    new_balance = await user.add_credits(
         amount=package["credits"],
         transaction_type="topup",
         description=f"Purchased {request.package.value} package ({package['credits']} credits)"
@@ -44,7 +44,8 @@ async def topup_credits(
 
     return {
         "message": f"Successfully added {package['credits']} credits",
-        "package": request.package.value
+        "package": request.package.value,
+        "credits_balance": new_balance
     }
 
 
