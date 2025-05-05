@@ -46,7 +46,11 @@ async def signup(user_in: UserIn):
 async def login(user_login: UserLogin, response: Response):
     # First get user by email
     user = await User.get_by_email(str(user_login.email))
-    if not user or not await user.verify_password(user_login.password):
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email address")
+
+    if not await user.verify_password(user_login.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     # Create tokens with just user ID
